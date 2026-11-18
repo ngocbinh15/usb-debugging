@@ -42,6 +42,9 @@ class _UsbDebuggingPageState extends State<UsbDebuggingPage>
   bool _hasPermission = false;
   bool _busy = true;
   String? _error;
+  bool _dnsSupported = false;
+  String? _dnsMode;
+  String _dnsHostname = '';
 
   @override
   void initState() {
@@ -68,6 +71,9 @@ class _UsbDebuggingPageState extends State<UsbDebuggingPage>
     setState(() {
       _enabled = status['enabled'] as bool;
       _hasPermission = status['hasPermission'] as bool;
+      _dnsSupported = status['dnsSupported'] as bool;
+      _dnsMode = status['dnsMode'] as String;
+      _dnsHostname = status['dnsHostname'] as String;
     });
   }
 
@@ -91,13 +97,13 @@ class _UsbDebuggingPageState extends State<UsbDebuggingPage>
     }
   }
 
-  Future<void> _setEnabled(bool enabled) async {
+  Future<void> _changeSetting(String method, bool enabled) async {
     setState(() {
       _busy = true;
       _error = null;
     });
     try {
-      await _channel.invokeMethod<void>('setEnabled', enabled);
+      await _channel.invokeMethod<void>(method, enabled);
       await _readStatus();
     } on PlatformException catch (error) {
       // Re-read permissions because they may have been revoked outside the app.
@@ -113,7 +119,7 @@ class _UsbDebuggingPageState extends State<UsbDebuggingPage>
       }
       if (mounted) {
         setState(
-          () => _error = error.message ?? 'Không đổi được USB debugging.',
+          () => _error = error.message ?? 'Không thay đổi được cài đặt.',
         );
       }
     } finally {
@@ -128,16 +134,19 @@ class _UsbDebuggingPageState extends State<UsbDebuggingPage>
       ..showSnackBar(SnackBar(content: Text(message)));
   }
 
-  Future<void> _addTile() async {
+  Future<void> _addTile({bool privateDns = false}) async {
+    final label = privateDns ? 'DNS riêng tư' : 'USB debugging';
     try {
-      final result = await _channel.invokeMethod<String>('addTile');
+      final result = await _channel.invokeMethod<String>(
+        privateDns ? 'addDnsTile' : 'addTile',
+      );
       _message(switch (result) {
-        'added' => 'Đã thêm ô USB debugging vào Cài đặt nhanh.',
-        'alreadyAdded' => 'Ô USB debugging đã có trong Cài đặt nhanh.',
+        'added' => 'Đã thêm ô $label vào Cài đặt nhanh.',
+        'alreadyAdded' => 'Ô $label đã có trong Cài đặt nhanh.',
         'notAdded' => 'Chưa thêm ô. Bạn có thể thêm thủ công bằng nút Sửa.',
         'manual' =>
           'Kéo bảng Cài đặt nhanh xuống → Sửa (biểu tượng bút chì) '
-              '→ kéo ô USB debugging lên.',
+              '→ kéo ô $label lên.',
         _ =>
           'Không thêm được ô tự động. Hãy thêm bằng nút Sửa trong Cài đặt nhanh.',
       });
@@ -146,11 +155,13 @@ class _UsbDebuggingPageState extends State<UsbDebuggingPage>
     }
   }
 
-  Future<void> _openSettings() async {
+  Future<void> _openSettings({bool privateDns = false}) async {
     try {
-      await _channel.invokeMethod<void>('openDeveloperSettings');
+      await _channel.invokeMethod<void>(
+        privateDns ? 'openDnsSettings' : 'openDeveloperSettings',
+      );
     } on PlatformException catch (error) {
-      _message(error.message ?? 'Không mở được Tùy chọn nhà phát triển.');
+      _message(error.message ?? 'Không mở được Cài đặt hệ thống.');
     }
   }
 
@@ -207,7 +218,7 @@ class _UsbDebuggingPageState extends State<UsbDebuggingPage>
                       value: _enabled ?? false,
                       onChanged: _busy || !_hasPermission || _enabled == null
                           ? null
-                          : _setEnabled,
+                          : (value) => _changeSetting('setEnabled', value),
                     ),
                   ),
                   if (_busy) const LinearProgressIndicator(),
@@ -232,6 +243,49 @@ class _UsbDebuggingPageState extends State<UsbDebuggingPage>
                     'bằng ô USB debugging. Khi máy đang khóa, cần mở khóa trước.',
                   ),
                   const SizedBox(height: 24),
+                  if (_dnsSupported) ...[
+                    Card(
+                      child: SwitchListTile.adaptive(
+                        key: const ValueKey('privateDns'),
+                        title: const Text('DNS riêng tư'),
+                        subtitle: Text(
+                          '${switch (_dnsMode) {
+                            'hostname' => 'Máy chủ riêng tư',
+                            'off' => 'Đang tắt trong hệ thống',
+                            null => 'Chưa đọc được trạng thái',
+                            _ => 'Tự động',
+                          }}\n${_dnsHostname.isEmpty ? 'Chọn tên máy chủ trong Cài đặt DNS trước.' : _dnsHostname}',
+                        ),
+                        value: _dnsMode == 'hostname',
+                        onChanged:
+                            _busy ||
+                                !_hasPermission ||
+                                _dnsMode == null ||
+                                (_dnsMode != 'hostname' && _dnsHostname.isEmpty)
+                            ? null
+                            : (value) => _changeSetting('setDnsPrivate', value),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    OutlinedButton.icon(
+                      onPressed: () => _addTile(privateDns: true),
+                      icon: const Icon(Icons.dns_outlined),
+                      label: const Text('Thêm ô DNS riêng tư'),
+                    ),
+                    TextButton(
+                      onPressed: () => _openSettings(privateDns: true),
+                      child: const Text('Cài đặt DNS'),
+                    ),
+                    const Text(
+                      'Bật: dùng tên máy chủ đã cấu hình. Tắt: chuyển về Tự động. '
+                      'Đổi tên máy chủ tại Cài đặt kết nối → DNS riêng tư. '
+                      'Máy chủ không truy cập được có thể khiến mạng không phân giải được tên miền.',
+                    ),
+                    const SizedBox(height: 24),
+                  ] else if (!_busy && _enabled != null) ...[
+                    const Text('DNS riêng tư yêu cầu Android 9 trở lên.'),
+                    const SizedBox(height: 24),
+                  ],
                   if (!_hasPermission) ...[
                     Text(
                       'Thiết lập lần đầu · Không cần root',

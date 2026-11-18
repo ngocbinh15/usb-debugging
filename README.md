@@ -1,6 +1,6 @@
 ﻿# USB Debugging
 
-App Flutter cho Android 7.0+ (API 24), một màn hình tiếng Việt và một ô Cài đặt nhanh để bật/tắt **gỡ lỗi USB**. Ô nhanh chạy bằng Kotlin `TileService`, không cần mở Flutter hay giữ app chạy thường trực.
+App Flutter cho Android 7.0+ (API 24), một màn hình tiếng Việt và các ô Cài đặt nhanh để bật/tắt **gỡ lỗi USB** và chuyển **DNS riêng tư ↔ Tự động** (Android 9+). Các ô chạy bằng Kotlin `TileService`, không cần mở Flutter hay giữ app chạy thường trực.
 
 ## Điều kiện
 
@@ -10,7 +10,7 @@ ADB (Android Debug Bridge) là công cụ máy tính giao tiếp với Android. 
 
 ## Cài trên Xiaomi không root
 
-1. Cài APK từ `build/app/outputs/flutter-apk/app-release.apk` (hoặc bản debug nếu tự build).
+1. Cài APK từ `build/app/outputs/flutter-apk/app-arm64-v8a-release.apk` cho Xiaomi dùng Android 64 bit. Nếu máy dùng Android 32 bit, chọn `app-armeabi-v7a-release.apk`. Bản `app-release.apk` hỗ trợ tất cả kiến trúc nhưng dung lượng lớn hơn.
 2. Vào **Cài đặt → Giới thiệu điện thoại**, chạm nhiều lần vào phiên bản MIUI/OS để bật Tùy chọn nhà phát triển. Tên mục có thể khác theo ROM.
 3. Vào **Cài đặt bổ sung → Tùy chọn nhà phát triển**, bật công tắc tổng và **USB debugging / Gỡ lỗi USB**.
 4. Tải và giải nén [Android SDK Platform-Tools](https://developer.android.com/tools/releases/platform-tools) trên máy tính. Nếu đã cài Android Studio, dùng `adb` trong thư mục SDK `platform-tools`.
@@ -34,8 +34,8 @@ Nếu `pm grant` báo `SecurityException`/`not allowed`, kiểm tra **USB debugg
 ## Lưu ý sử dụng
 
 - Tắt USB debugging sẽ ngắt kết nối ADB qua USB, kể cả `flutter run`. Đây là hành vi mong đợi. Sau khi cấp quyền, bật lại bằng ô nhanh không cần phiên ADB đang kết nối.
-- App chỉ đổi `Settings.Global.ADB_ENABLED`. Không tắt/bật Wireless debugging hay công tắc tổng Tùy chọn nhà phát triển. Cần giữ công tắc tổng bật để bật lại USB debugging bằng app.
-- Chỉ chấp nhận khóa gỡ lỗi từ máy tính tin cậy. Quyền WRITE_SECURE_SETTINGS có phạm vi rộng; mã app chỉ sử dụng nó cho USB debugging.
+- Phần USB chỉ đổi `Settings.Global.ADB_ENABLED`. Không tắt/bật Wireless debugging hay công tắc tổng Tùy chọn nhà phát triển. Cần giữ công tắc tổng bật để bật lại USB debugging bằng app.
+- Chỉ chấp nhận khóa gỡ lỗi từ máy tính tin cậy. Quyền WRITE_SECURE_SETTINGS có phạm vi rộng; app sử dụng nó cho USB debugging và chế độ DNS riêng tư.
 - Không có quyền mạng trong manifest bản release, tài khoản, quảng cáo hoặc thu thập dữ liệu. Bản debug có quyền mạng cho công cụ Flutter.
 - Bản release hiện ký bằng khóa debug mặc định để cài thử cá nhân. Trước khi phân phối chính thức cần cấu hình khóa ký riêng.
 
@@ -44,6 +44,19 @@ Thu hồi quyền (bật lại USB debugging bằng Cài đặt và kết nối 
 ```powershell
 .\adb.exe shell pm revoke dev.usbtoggle.app_usb android.permission.WRITE_SECURE_SETTINGS
 ```
+
+## Chuyển nhanh DNS riêng tư (từ Android 9)
+
+1. Cài đè APK mới, giữ lại quyền ADB đã cấp. Không cần root hay thêm quyền mới.
+2. Cấu hình tên máy chủ một lần trong **Cài đặt kết nối → DNS riêng tư → Tên máy chủ nhà cung cấp DNS riêng tư**. App đọc lại tên máy chủ đang lưu trong Android, không tự chọn nhà cung cấp. Nút **Cài đặt DNS** mở trang cài đặt kết nối của hệ thống.
+3. Trong app, công tắc **DNS riêng tư** bật là dùng tên máy chủ đã cấu hình; tắt là chuyển về **Tự động**. Tên máy chủ vẫn được giữ lại để bật lại nhanh. Khi chưa có tên máy chủ, công tắc không cho bật và hiển thị hướng dẫn cấu hình.
+4. Thêm ô **DNS riêng tư** từ nút **Thêm ô DNS riêng tư**, hoặc **Trung tâm điều khiển → Sửa** trên Xiaomi/Android 12. Chạm ô để chuyển hai chiều. Máy khóa cần mở khóa trước; thiếu quyền hoặc tên máy chủ thì ô mở app.
+
+App chỉ ghi `private_dns_mode` (`opportunistic` ↔ `hostname`), không ghi hoặc xóa `private_dns_specifier`. Nếu DNS đang ở chế độ **Tắt** từ Cài đặt Android, app hiển thị đúng trạng thái đó; lần bật tiếp theo chuyển sang máy chủ riêng tư, lần tắt sau đó về Tự động.
+
+Trạng thái trong app/ô phản ánh cấu hình, không xác nhận kết nối DNS đã thành công. Tên máy chủ không hoạt động hoặc mạng chặn DNS-over-TLS có thể khiến mạng không phân giải được tên miền; chuyển về Tự động để khôi phục việc phân giải qua mạng. Android 7/8 vẫn dùng được phần USB, không có ô DNS.
+
+Tham chiếu AOSP: [Settings.Global và tên máy chủ được giữ khi đổi chế độ](https://android.googlesource.com/platform/frameworks/base/+/6d408b5bf20431ac41ed039f2ad192b150c02eff/core/java/android/provider/Settings.java), [các chế độ và giá trị mặc định của Private DNS](https://android.googlesource.com/platform/frameworks/libs/net/+/8ef52686483cdff0040d22753bb516e99a96a88d/common/framework/com/android/net/module/util/ConnectivitySettingsUtils.java).
 
 ## Phát triển
 
@@ -56,13 +69,27 @@ flutter analyze
 flutter test
 flutter build apk --debug
 flutter build apk --release
+flutter build apk --release --split-per-abi
+flutter build apk --release --split-per-abi
 ```
 
 - `lib/main.dart`: giao diện, hướng dẫn và MethodChannel `dev.usbtoggle/usb_debugging`.
 - `android/app/src/main/kotlin/dev/usbtoggle/app_usb/UsbDebugging.kt`: đọc trạng thái, kiểm tra quyền và ghi thiết lập dùng chung.
 - `MainActivity.kt`: bridge Flutter/Android và yêu cầu thêm ô.
 - `UsbDebuggingTileService.kt`: ô Cài đặt nhanh, mở khóa, theo dõi thay đổi khi ô hiển thị.
+- `PrivateDns.kt`, `PrivateDnsTileService.kt`: dùng chung điều khiển DNS giữa app và ô nhanh, giữ nguyên tên máy chủ, quan sát thay đổi chế độ và tên máy chủ.
 - `test/widget_test.dart`: kiểm thử Flutter với Android channel giả lập; không thay thế kiểm thử phần cứng/ROM.
+
+APK ARM64 nhỏ hơn nằm ở `build/app/outputs/flutter-apk/app-arm64-v8a-release.apk`. Máy Xiaomi M2007J20CG được nhận diện trong phiên phát triển dùng Android 12 / API 31 / ARM64, nên dùng bản này. Trên Android 12, thêm ô bằng nút **Sửa** trong bảng Cài đặt nhanh; hộp thoại thêm tự động chỉ có từ Android 13.
+
+## Kết quả kiểm tra trong phiên phát triển
+
+- Bản 1.1.0: `flutter analyze` không có vấn đề; `flutter test` đạt 14/14, gồm đổi DNS hai chiều, giữ tên máy chủ, thiếu/thu hồi quyền, thiếu tên máy chủ, Android cũ và đọc lại thay đổi từ hệ thống.
+- Đã kiểm tra test bắt được lỗi khi bỏ điều kiện kiểm tra quyền, sau đó khôi phục mã và chạy lại toàn bộ test thành công.
+- Build debug, release và release tách ABI thành công; chữ ký APK ARM64 hợp lệ.
+- Máy ảo Android 16: cài và mở APK release thành công; công tắc bị khóa khi chưa có quyền; nút thêm ô mở hộp thoại Android; chạm ô khi thiếu quyền mở app thành công.
+- Sau khi cấp quyền trên máy ảo, công tắc khả dụng và đang bật. Chạm tắt làm ADB của máy ảo chuyển sang offline, khiến các bước tự động bật lại/kiểm tra ô tiếp theo không thực hiện được. Chưa xác minh đầy đủ bật/tắt hai chiều và khóa màn hình trên Android thực.
+- Quyền WRITE_SECURE_SETTINGS đã được xác nhận `granted=true` trên Xiaomi thật. Các kết quả máy ảo nêu trên thuộc bản USB trước khi thêm DNS.
 
 ## Kiểm tra trên máy thật
 

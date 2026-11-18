@@ -1,6 +1,6 @@
 # USB Debugging — Android
 
-Một app Flutter nhỏ, giao diện tiếng Việt, chỉ bật/tắt USB debugging và cung cấp ô Cài đặt nhanh. Android tối thiểu 7.0 (API 24).
+Một app Flutter nhỏ, giao diện tiếng Việt, bật/tắt USB debugging và chuyển DNS riêng tư bằng các ô Cài đặt nhanh. Android tối thiểu 7.0 (API 24); DNS riêng tư yêu cầu Android 9 (API 28).
 
 ## Hành vi
 
@@ -11,6 +11,10 @@ Một app Flutter nhỏ, giao diện tiếng Việt, chỉ bật/tắt USB debug
 - Ô nhanh yêu cầu mở khóa trước khi đổi trạng thái; theo dõi thay đổi khi hiển thị.
 - Android 13 trở lên: nút yêu cầu thêm ô bằng API hệ thống. Bản cũ hướng dẫn thêm bằng trình sửa ô.
 - Chỉ thay đổi USB debugging; không đổi Wireless debugging hay công tắc tổng Tùy chọn nhà phát triển.
+- DNS: chuyển `private_dns_mode` giữa `opportunistic` (Tự động) và `hostname` (máy chủ riêng tư đã cấu hình); giữ nguyên `private_dns_specifier`, không tự chọn nhà cung cấp.
+- Tên máy chủ được cấu hình trong Cài đặt Android. Chưa có tên máy chủ: hướng dẫn cấu hình trước khi bật. Chế độ `off` từ hệ thống được hiển thị đúng, không gọi nhầm là Tự động.
+- Dùng lại WRITE_SECURE_SETTINGS, không thêm quyền hoặc dependency. Ô DNS riêng chỉ có từ API 28, yêu cầu mở khóa và cập nhật khi thiết lập thay đổi.
+- Hiển thị cấu hình DNS, không khẳng định kết nối tới máy chủ DNS đã thành công.
 
 ## Phạm vi và cấu trúc
 

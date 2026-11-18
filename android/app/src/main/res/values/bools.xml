@@ -1,0 +1,3 @@
+<resources>
+    <bool name="private_dns_supported">false</bool>
+</resources>

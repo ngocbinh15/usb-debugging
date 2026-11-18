@@ -10,6 +10,10 @@ void main() {
   late bool permission;
   late bool failRead;
   late bool failWrite;
+  late bool dnsSupported;
+  late bool failDnsWrite;
+  late String dnsMode;
+  late String dnsHostname;
   late List<MethodCall> calls;
 
   setUp(() {
@@ -17,6 +21,10 @@ void main() {
     permission = false;
     failRead = false;
     failWrite = false;
+    dnsSupported = true;
+    failDnsWrite = false;
+    dnsMode = 'opportunistic';
+    dnsHostname = 'dns.example.com';
     calls = [];
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(channel, (call) async {
@@ -29,7 +37,13 @@ void main() {
                   message: 'Không đọc được trạng thái.',
                 );
               }
-              return {'enabled': enabled, 'hasPermission': permission};
+              return {
+                'enabled': enabled,
+                'hasPermission': permission,
+                'dnsSupported': dnsSupported,
+                'dnsMode': dnsMode,
+                'dnsHostname': dnsHostname,
+              };
             case 'setEnabled':
               if (failWrite) {
                 permission = false;
@@ -41,8 +55,20 @@ void main() {
               enabled = call.arguments as bool;
               return {'enabled': enabled, 'hasPermission': permission};
             case 'addTile':
+            case 'addDnsTile':
               return 'manual';
+            case 'setDnsPrivate':
+              if (failDnsWrite) {
+                permission = false;
+                throw PlatformException(
+                  code: 'PERMISSION_DENIED',
+                  message: 'Cần cấp lại quyền ADB.',
+                );
+              }
+              dnsMode = call.arguments == true ? 'hostname' : 'opportunistic';
+              return null;
             case 'openDeveloperSettings':
+            case 'openDnsSettings':
               return null;
             default:
               throw MissingPluginException();
@@ -61,7 +87,7 @@ void main() {
     await tester.pumpWidget(const UsbDebuggingApp());
     await tester.pumpAndSettle();
     expect(find.text('Thiết lập lần đầu · Không cần root'), findsOneWidget);
-    expect(tester.widget<Switch>(find.byType(Switch)).onChanged, isNull);
+    expect(tester.widget<Switch>(find.byType(Switch).first).onChanged, isNull);
     expect(find.textContaining('adb shell pm grant'), findsOneWidget);
   });
 
@@ -69,11 +95,11 @@ void main() {
     permission = true;
     await tester.pumpWidget(const UsbDebuggingApp());
     await tester.pumpAndSettle();
-    await tester.tap(find.byType(Switch));
+    await tester.tap(find.byType(Switch).first);
     await tester.pumpAndSettle();
     expect(enabled, isTrue);
-    expect(tester.widget<Switch>(find.byType(Switch)).value, isTrue);
-    await tester.tap(find.byType(Switch));
+    expect(tester.widget<Switch>(find.byType(Switch).first).value, isTrue);
+    await tester.tap(find.byType(Switch).first);
     await tester.pumpAndSettle();
     expect(enabled, isFalse);
   });
@@ -85,11 +111,11 @@ void main() {
     await tester.pumpWidget(const UsbDebuggingApp());
     await tester.pumpAndSettle();
     failWrite = true;
-    await tester.tap(find.byType(Switch));
+    await tester.tap(find.byType(Switch).first);
     await tester.pumpAndSettle();
     expect(enabled, isFalse);
     expect(find.text('Cần cấp lại quyền ADB.'), findsOneWidget);
-    expect(tester.widget<Switch>(find.byType(Switch)).onChanged, isNull);
+    expect(tester.widget<Switch>(find.byType(Switch).first).onChanged, isNull);
   });
 
   testWidgets('reloads status after returning from settings', (tester) async {
@@ -100,7 +126,7 @@ void main() {
     tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
     tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
     await tester.pumpAndSettle();
-    expect(tester.widget<Switch>(find.byType(Switch)).value, isTrue);
+    expect(tester.widget<Switch>(find.byType(Switch).first).value, isTrue);
     tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.detached);
   });
 
@@ -113,7 +139,10 @@ void main() {
     permission = true;
     await tester.tap(find.byTooltip('Đọc lại trạng thái'));
     await tester.pumpAndSettle();
-    expect(tester.widget<Switch>(find.byType(Switch)).onChanged, isNotNull);
+    expect(
+      tester.widget<Switch>(find.byType(Switch).first).onChanged,
+      isNotNull,
+    );
   });
 
   testWidgets('supports manual tile setup on older Android', (tester) async {
@@ -136,5 +165,118 @@ void main() {
     await tester.pumpWidget(const UsbDebuggingApp());
     await tester.pumpAndSettle();
     expect(tester.takeException(), isNull);
+  });
+
+  Finder dnsSwitch() => find.descendant(
+    of: find.byKey(const ValueKey('privateDns')),
+    matching: find.byType(Switch),
+  );
+
+  testWidgets('switches automatic DNS to saved hostname and back', (
+    tester,
+  ) async {
+    permission = true;
+    await tester.pumpWidget(const UsbDebuggingApp());
+    await tester.pumpAndSettle();
+    expect(find.textContaining('dns.example.com'), findsWidgets);
+    expect(tester.widget<Switch>(dnsSwitch()).value, isFalse);
+    await tester.ensureVisible(dnsSwitch());
+    await tester.tap(dnsSwitch());
+    await tester.pumpAndSettle();
+    expect(dnsMode, 'hostname');
+    expect(dnsHostname, 'dns.example.com');
+    expect(tester.widget<Switch>(dnsSwitch()).value, isTrue);
+    await tester.tap(dnsSwitch());
+    await tester.pumpAndSettle();
+    expect(dnsMode, 'opportunistic');
+    expect(dnsHostname, 'dns.example.com');
+    expect(enabled, isFalse);
+  });
+
+  testWidgets('disables DNS switch without permission', (tester) async {
+    await tester.pumpWidget(const UsbDebuggingApp());
+    await tester.pumpAndSettle();
+    expect(tester.widget<Switch>(dnsSwitch()).onChanged, isNull);
+  });
+
+  testWidgets('asks to configure a hostname before enabling private DNS', (
+    tester,
+  ) async {
+    permission = true;
+    dnsHostname = '';
+    await tester.pumpWidget(const UsbDebuggingApp());
+    await tester.pumpAndSettle();
+    expect(tester.widget<Switch>(dnsSwitch()).onChanged, isNull);
+    await tester.ensureVisible(find.text('Cài đặt DNS'));
+    await tester.tap(find.text('Cài đặt DNS'));
+    await tester.pumpAndSettle();
+    expect(calls.any((call) => call.method == 'openDnsSettings'), isTrue);
+  });
+
+  testWidgets('does not offer DNS tile before Android 9', (tester) async {
+    dnsSupported = false;
+    await tester.pumpWidget(const UsbDebuggingApp());
+    await tester.pumpAndSettle();
+    expect(find.text('Thêm ô DNS riêng tư'), findsNothing);
+    expect(
+      find.text('DNS riêng tư yêu cầu Android 9 trở lên.'),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('handles revoked permission during DNS changes', (tester) async {
+    permission = true;
+    await tester.pumpWidget(const UsbDebuggingApp());
+    await tester.pumpAndSettle();
+    failDnsWrite = true;
+    await tester.ensureVisible(dnsSwitch());
+    await tester.tap(dnsSwitch());
+    await tester.pumpAndSettle();
+    expect(dnsMode, 'opportunistic');
+    expect(tester.widget<Switch>(dnsSwitch()).value, isFalse);
+    expect(tester.widget<Switch>(dnsSwitch()).onChanged, isNull);
+    expect(find.text('Cần cấp lại quyền ADB.'), findsOneWidget);
+  });
+
+  testWidgets('reports externally disabled DNS and reloads on resume', (
+    tester,
+  ) async {
+    permission = true;
+    dnsMode = 'off';
+    await tester.pumpWidget(const UsbDebuggingApp());
+    await tester.pumpAndSettle();
+    expect(find.textContaining('Đang tắt trong hệ thống'), findsOneWidget);
+    dnsMode = 'hostname';
+    dnsHostname = 'other.example.com';
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    await tester.pumpAndSettle();
+    expect(tester.widget<Switch>(dnsSwitch()).value, isTrue);
+    expect(find.textContaining('other.example.com'), findsWidgets);
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.detached);
+  });
+
+  testWidgets('requests a separate DNS Quick Settings tile', (tester) async {
+    await tester.pumpWidget(const UsbDebuggingApp());
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('Thêm ô DNS riêng tư'));
+    await tester.tap(find.text('Thêm ô DNS riêng tư'));
+    await tester.pumpAndSettle();
+    expect(calls.any((call) => call.method == 'addDnsTile'), isTrue);
+    expect(find.textContaining('kéo ô DNS riêng tư lên'), findsOneWidget);
+  });
+
+  testWidgets('clears stale DNS state when a refresh fails', (tester) async {
+    permission = true;
+    dnsMode = 'hostname';
+    await tester.pumpWidget(const UsbDebuggingApp());
+    await tester.pumpAndSettle();
+    expect(tester.widget<Switch>(dnsSwitch()).value, isTrue);
+    failRead = true;
+    await tester.tap(find.byTooltip('Đọc lại trạng thái'));
+    await tester.pumpAndSettle();
+    expect(tester.widget<Switch>(dnsSwitch()).value, isFalse);
+    expect(tester.widget<Switch>(dnsSwitch()).onChanged, isNull);
+    expect(find.textContaining('Chưa đọc được trạng thái'), findsWidgets);
   });
 }

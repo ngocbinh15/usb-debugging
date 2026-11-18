@@ -15,11 +15,12 @@ class MainActivity : FlutterActivity() {
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
         val debugging = UsbDebugging(this)
+        val dns = PrivateDns(this)
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "dev.usbtoggle/usb_debugging")
             .setMethodCallHandler { call, result ->
                 try {
                     when (call.method) {
-                        "getStatus" -> result.success(debugging.status())
+                        "getStatus" -> result.success(debugging.status() + dns.status())
                         "setEnabled" -> {
                             val enabled = call.arguments as? Boolean
                                 ?: throw IllegalArgumentException("Expected a Boolean")
@@ -34,7 +35,27 @@ class MainActivity : FlutterActivity() {
                             }
                             result.success(null)
                         }
+                        "setDnsPrivate" -> {
+                            val enabled = call.arguments as? Boolean
+                                ?: throw IllegalArgumentException("Expected a Boolean")
+                            dns.setPrivate(enabled)
+                            result.success(null)
+                        }
+                        "openDnsSettings" -> {
+                            try {
+                                startActivity(Intent(Settings.ACTION_WIRELESS_SETTINGS))
+                            } catch (_: ActivityNotFoundException) {
+                                startActivity(Intent(Settings.ACTION_SETTINGS))
+                            }
+                            result.success(null)
+                        }
                         "addTile" -> addTile(result)
+                        "addDnsTile" -> {
+                            check(Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                                getString(R.string.dns_unsupported)
+                            }
+                            addTile(result, privateDns = true)
+                        }
                         else -> result.notImplemented()
                     }
                 } catch (_: SecurityException) {
@@ -45,7 +66,7 @@ class MainActivity : FlutterActivity() {
             }
     }
 
-    private fun addTile(result: MethodChannel.Result) {
+    private fun addTile(result: MethodChannel.Result, privateDns: Boolean = false) {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
             result.success("manual")
             return
@@ -56,9 +77,9 @@ class MainActivity : FlutterActivity() {
             return
         }
         statusBar.requestAddTileService(
-            ComponentName(this, UsbDebuggingTileService::class.java),
-            getString(R.string.tile_label),
-            Icon.createWithResource(this, R.drawable.ic_usb),
+            ComponentName(this, if (privateDns) PrivateDnsTileService::class.java else UsbDebuggingTileService::class.java),
+            getString(if (privateDns) R.string.dns_tile_label else R.string.tile_label),
+            Icon.createWithResource(this, if (privateDns) R.drawable.ic_dns else R.drawable.ic_usb),
             mainExecutor,
         ) { code ->
             result.success(when (code) {
