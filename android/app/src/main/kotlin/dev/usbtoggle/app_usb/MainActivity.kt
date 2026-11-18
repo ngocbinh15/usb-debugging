@@ -12,8 +12,17 @@ import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
 
 class MainActivity : FlutterActivity() {
+    private var cacheCleaner: CacheCleaner? = null
+
+    override fun onDestroy() {
+        cacheCleaner?.close()
+        super.onDestroy()
+    }
+
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
+        cacheCleaner?.close()
+        cacheCleaner = CacheCleaner(this, MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "dev.usbtoggle/cache_cleaner"))
         val debugging = UsbDebugging(this)
         val dns = PrivateDns(this)
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "dev.usbtoggle/usb_debugging")

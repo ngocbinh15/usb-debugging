@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'cache_cleaner_card.dart';
 
 void main() => runApp(const UsbDebuggingApp());
 
@@ -88,6 +89,7 @@ class _UsbDebuggingPageState extends State<UsbDebuggingPage>
       if (mounted) {
         setState(() {
           _enabled = null;
+          _dnsMode = null;
           _hasPermission = false;
           _error = error.message ?? 'Không đọc được trạng thái USB debugging.';
         });
@@ -113,6 +115,7 @@ class _UsbDebuggingPageState extends State<UsbDebuggingPage>
         if (mounted) {
           setState(() {
             _enabled = null;
+            _dnsMode = null;
             _hasPermission = false;
           });
         }
@@ -333,6 +336,8 @@ class _UsbDebuggingPageState extends State<UsbDebuggingPage>
                     ),
                     const SizedBox(height: 16),
                   ],
+                  const CacheCleanerCard(),
+                  const SizedBox(height: 24),
                   OutlinedButton.icon(
                     onPressed: _openSettings,
                     icon: const Icon(Icons.settings_outlined),

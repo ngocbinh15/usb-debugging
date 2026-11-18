@@ -6,8 +6,13 @@ plugins {
 }
 
 android {
+    buildFeatures {
+        aidl = true
+    }
     namespace = "dev.usbtoggle.app_usb"
     compileSdk = flutter.compileSdkVersion
+    // Older AIDL compilers emit unescaped Windows paths in generated Java comments.
+    buildToolsVersion = "36.1.0"
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
@@ -40,4 +45,9 @@ android {
 
 flutter {
     source = "../.."
+}
+
+dependencies {
+    implementation("dev.rikka.shizuku:api:13.1.5")
+    implementation("dev.rikka.shizuku:provider:13.1.5")
 }
