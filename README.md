@@ -75,7 +75,12 @@ flutter build apk --release --split-per-abi
 flutter build apk --release --split-per-abi
 ```
 
-- `lib/main.dart`: giao diện, hướng dẫn và MethodChannel `dev.usbtoggle/usb_debugging`.
+- `lib/main.dart`: điểm khởi chạy app.
+- `lib/app.dart`: cấu hình MaterialApp và giao diện sáng/tối.
+- `lib/pages/usb_debugging_page.dart`: ghép màn hình, quản lý trạng thái, vòng đời và MethodChannel `dev.usbtoggle/usb_debugging`.
+- `lib/widgets/usb_debugging_section.dart`: giao diện trạng thái và công tắc USB.
+- `lib/widgets/private_dns_section.dart`: giao diện DNS riêng tư và các nút cài đặt/ô nhanh.
+- `lib/widgets/adb_setup_section.dart`: hướng dẫn cấp quyền ADB và sao chép lệnh.
 - `android/app/src/main/kotlin/dev/usbtoggle/app_usb/UsbDebugging.kt`: đọc trạng thái, kiểm tra quyền và ghi thiết lập dùng chung.
 - `MainActivity.kt`: bridge Flutter/Android và yêu cầu thêm ô.
 - `UsbDebuggingTileService.kt`: ô Cài đặt nhanh, mở khóa, theo dõi thay đổi khi ô hiển thị.

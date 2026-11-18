@@ -18,7 +18,7 @@ Một app Flutter nhỏ, giao diện tiếng Việt, bật/tắt USB debugging v
 
 ## Phạm vi và cấu trúc
 
-`lib/main.dart`: màn hình và MethodChannel. `android/app/src/main/`: controller, activity, tile, manifest, icon, chuỗi giao diện. `test/widget_test.dart`: kiểm thử giao diện, lỗi quyền, lỗi đọc và quay lại app. `README.md`: cài đặt, Xiaomi, cấp/thu hồi quyền, kiểm thử trên máy.
+`lib/main.dart`: điểm khởi chạy; `lib/app.dart`: cấu hình app. `lib/pages/usb_debugging_page.dart`: màn hình, trạng thái và MethodChannel USB/DNS. `lib/widgets/`: giao diện USB, DNS và hướng dẫn ADB; nhận trạng thái và callback từ màn hình. `lib/cache_cleaner_card.dart`: phần dọn cache Shizuku độc lập. `android/app/src/main/`: controller, activity, tile, manifest, icon, chuỗi giao diện. `test/widget_test.dart`: kiểm thử giao diện, lỗi quyền, lỗi đọc và quay lại app. `README.md`: cài đặt, Xiaomi, cấp/thu hồi quyền, kiểm thử trên máy.
 
 Không tài khoản, quảng cáo hay dịch vụ chạy thường trực của app. USB/DNS không cần root hay Shizuku. Tính năng dọn cache dùng Shizuku API/provider 13.1.5 theo lựa chọn của người dùng, không cần root.
 
