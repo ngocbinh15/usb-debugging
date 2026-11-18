@@ -1,0 +1,10 @@
+<resources>
+    <string name="app_name">USB Debugging</string>
+    <string name="tile_label">USB debugging</string>
+    <string name="tile_on">Đang bật</string>
+    <string name="tile_off">Đang tắt</string>
+    <string name="tile_needs_permission">Mở app để cấp quyền</string>
+    <string name="permission_required">Cần cấp quyền WRITE_SECURE_SETTINGS qua ADB. Mở app để xem hướng dẫn.</string>
+    <string name="developer_options_required">Hãy bật công tắc tổng Tùy chọn nhà phát triển trong Cài đặt trước.</string>
+    <string name="change_failed">Android không cho đổi USB debugging. Hãy kiểm tra quyền và cài đặt bảo mật trên máy.</string>
+</resources>
