@@ -54,6 +54,24 @@
                 <action android:name="android.service.quicksettings.action.QS_TILE" />
             </intent-filter>
         </service>
+        <activity
+            android:name=".CacheCleanActivity"
+            android:exported="false"
+            android:excludeFromRecents="true"
+            android:launchMode="singleTop"
+            android:label="@string/cache_tile_label"
+            android:theme="@android:style/Theme.Material.Dialog.Alert" />
+        <service
+            android:name=".CacheCleanerTileService"
+            android:enabled="@bool/cache_cleaner_supported"
+            android:exported="true"
+            android:icon="@drawable/ic_cache"
+            android:label="@string/cache_tile_label"
+            android:permission="android.permission.BIND_QUICK_SETTINGS_TILE">
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE" />
+            </intent-filter>
+        </service>
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->
         <meta-data

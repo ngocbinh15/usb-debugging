@@ -1,6 +1,6 @@
 ﻿# USB Debugging
 
-App Flutter cho Android 7.0+ (API 24), một màn hình tiếng Việt và các ô Cài đặt nhanh để bật/tắt **gỡ lỗi USB** và chuyển **DNS riêng tư ↔ Tự động** (Android 9+). Thêm nút **Dọn cache hàng loạt** qua Shizuku (Android 8+). Các ô chạy bằng Kotlin `TileService`, không cần mở Flutter hay giữ app chạy thường trực.
+App Flutter cho Android 7.0+ (API 24), một màn hình tiếng Việt và các ô Cài đặt nhanh để bật/tắt **gỡ lỗi USB**, chuyển **DNS riêng tư ↔ Tự động** (Android 9+) và **Dọn cache** qua Shizuku (Android 8+). Các ô chạy bằng Kotlin `TileService`, không cần mở Flutter hay giữ app chạy thường trực.
 
 ## Điều kiện
 
@@ -87,12 +87,19 @@ flutter build apk --release --split-per-abi
 - `PrivateDns.kt`, `PrivateDnsTileService.kt`: dùng chung điều khiển DNS giữa app và ô nhanh, giữ nguyên tên máy chủ, quan sát thay đổi chế độ và tên máy chủ.
 - `test/widget_test.dart`: kiểm thử Flutter với Android channel giả lập; không thay thế kiểm thử phần cứng/ROM.
 - `lib/cache_cleaner_card.dart`, `CacheCleaner.kt`, `CacheTrimService.kt`, `ICacheTrimmer.aidl`: giao diện và UserService Shizuku cho dọn cache; `test/cache_cleaner_test.dart` kiểm tra luồng quyền, lỗi, timeout và chống nhấn lặp.
+- `CacheTrimClient.kt`: kết nối UserService dùng chung cho app và ô nhanh, chặn dọn đồng thời, xử lý timeout và ngắt kết nối.
+- `CacheCleanerTileService.kt`, `CacheCleanActivity.kt`: ô Dọn cache và hộp tiến trình/kết quả; `QuickSettingsTiles.kt` dùng chung yêu cầu thêm ba ô USB, DNS và cache.
+- `CacheTrimClient.kt`: kết nối UserService, timeout và chống dọn đồng thời giữa Flutter và ô nhanh. `CacheCleanerTileService.kt`, `CacheCleanActivity.kt`: ô dọn cache và hộp tiến trình/kết quả Android. `QuickSettingsTiles.kt`: yêu cầu thêm ô dùng chung cho USB, DNS và cache.
 
 ## Dọn cache qua Shizuku
 
 1. Cài [Shizuku chính thức](https://shizuku.rikka.app/download/) và mở app này. Với Android 11+, có thể khởi động bằng Gỡ lỗi không dây theo hướng dẫn của Shizuku; hoặc dùng lệnh ADB do chính Shizuku hiển thị khi nối máy tính.
 2. Trong app USB Debugging, cuộn tới **Dọn cache**, nhấn **Kiểm tra Shizuku**, rồi **Cấp quyền Shizuku** và cho phép trong hộp thoại. Quyền WRITE_SECURE_SETTINGS trước đó không thay thế quyền Shizuku.
-3. Nhấn **Dọn cache hàng loạt**. Chỉ thao tác này mới dọn; không tự dọn sau khi cấp quyền và không chạy định kỳ.
+3. Nhấn **Dọn cache hàng loạt**. App không tự dọn sau khi cấp quyền và không chạy định kỳ.
+4. Để dọn từ thanh kéo xuống, nhấn **Thêm ô Dọn cache**. Android 13+ có hộp thoại thêm ô; Xiaomi Android 12 cần vào **Trung tâm điều khiển → Sửa → kéo ô Dọn cache lên**. Mở khóa điện thoại rồi chạm ô để dọn.
+4. Để dọn từ thanh kéo xuống, nhấn **Thêm ô Dọn cache**. Android 13+ có hộp thoại thêm ô; Xiaomi Android 12 cần mở Trung tâm điều khiển → **Sửa** → kéo ô **Dọn cache** vào vùng hiển thị.
+
+Chạm ô **Dọn cache** sẽ yêu cầu mở khóa nếu cần, mở hộp tiến trình Android rồi chạy dọn một lần qua Shizuku. Hộp hiển thị kết quả yêu cầu và dung lượng trống tăng ước tính. Thiếu Shizuku hoặc quyền thì ô mở app để thiết lập; cấp quyền xong cần chủ động chạm lại để dọn. Thêm ô hay mở bảng nhanh không tự dọn. Ô và nút trong app chặn yêu cầu dọn đồng thời, không cần Trợ năng.
 
 Tính năng gọi lệnh cố định `pm trim-caches 9223372036854775807 internal` trong UserService chạy dưới danh tính ADB/root của Shizuku. Nó yêu cầu Android dọn cache trên bộ nhớ trong ở mức tối đa hệ thống cho phép. Không dùng `pm clear` (lệnh xóa dữ liệu app), không xóa ảnh/tài liệu, không force-stop từng ứng dụng. Cache được dọn có thể phải tải lại; một số app giữ cache được bảo vệ hoặc tạo lại cache ngay.
 
@@ -105,6 +112,8 @@ Tham chiếu: [Shizuku API/UserService](https://github.com/RikkaApps/Shizuku-API
 APK ARM64 nhỏ hơn nằm ở `build/app/outputs/flutter-apk/app-arm64-v8a-release.apk`. Máy Xiaomi M2007J20CG được nhận diện trong phiên phát triển dùng Android 12 / API 31 / ARM64, nên dùng bản này. Trên Android 12, thêm ô bằng nút **Sửa** trong bảng Cài đặt nhanh; hộp thoại thêm tự động chỉ có từ Android 13.
 
 ## Kết quả kiểm tra trong phiên phát triển
+
+- Bản 1.3.0: thêm ô Dọn cache; 26 test Flutter đạt, phân tích code sạch, build release tách ABI và kiểm tra chữ ký ARM64 thành công. Đã thử trên máy ảo Android 16: ô mở app khi thiếu Shizuku/quyền; sau khi cấp quyền, dọn thành công từ ô nhanh trên màn hình chính và từ nút trong app, UserService kết thúc sau khi xong. Lần thử APK cuối ghi nhận dung lượng trống tăng khoảng 16 MB; đây là số ước tính. Khi khóa PIN, chạm ô chưa khởi chạy dọn; chưa xác nhận tự tiếp tục sau mở khóa. Chưa thử ô cache trên Xiaomi thật.
 
 - Bản 1.2.0: `flutter analyze` không có vấn đề; 22/22 kiểm thử đạt. Đã thử thật trên máy ảo Android 16: khởi động Shizuku bằng ADB, cấp quyền qua hộp thoại, chạy UserService dọn cache thành công, hiển thị kết quả không khẳng định xóa sạch; dịch vụ dọn đã kết thúc sau khi chạy. Máy ảo không ghi nhận dung lượng trống tăng trong lần thử này. Chưa dọn cache trên Xiaomi thật.
 

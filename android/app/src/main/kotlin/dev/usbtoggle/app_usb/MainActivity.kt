@@ -1,10 +1,7 @@
 package dev.usbtoggle.app_usb
 
-import android.app.StatusBarManager
 import android.content.ActivityNotFoundException
-import android.content.ComponentName
 import android.content.Intent
-import android.graphics.drawable.Icon
 import android.os.Build
 import android.provider.Settings
 import io.flutter.embedding.android.FlutterActivity
@@ -76,27 +73,12 @@ class MainActivity : FlutterActivity() {
     }
 
     private fun addTile(result: MethodChannel.Result, privateDns: Boolean = false) {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
-            result.success("manual")
-            return
-        }
-        val statusBar = getSystemService(StatusBarManager::class.java)
-        if (statusBar == null) {
-            result.success("manual")
-            return
-        }
-        statusBar.requestAddTileService(
-            ComponentName(this, if (privateDns) PrivateDnsTileService::class.java else UsbDebuggingTileService::class.java),
-            getString(if (privateDns) R.string.dns_tile_label else R.string.tile_label),
-            Icon.createWithResource(this, if (privateDns) R.drawable.ic_dns else R.drawable.ic_usb),
-            mainExecutor,
-        ) { code ->
-            result.success(when (code) {
-                StatusBarManager.TILE_ADD_REQUEST_RESULT_TILE_ADDED -> "added"
-                StatusBarManager.TILE_ADD_REQUEST_RESULT_TILE_ALREADY_ADDED -> "alreadyAdded"
-                StatusBarManager.TILE_ADD_REQUEST_RESULT_TILE_NOT_ADDED -> "notAdded"
-                else -> "manual"
-            })
-        }
+        QuickSettingsTiles.add(
+            this,
+            if (privateDns) PrivateDnsTileService::class.java else UsbDebuggingTileService::class.java,
+            if (privateDns) R.string.dns_tile_label else R.string.tile_label,
+            if (privateDns) R.drawable.ic_dns else R.drawable.ic_usb,
+            result::success,
+        )
     }
 }

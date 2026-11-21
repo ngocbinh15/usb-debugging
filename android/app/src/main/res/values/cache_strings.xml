@@ -1,0 +1,13 @@
+<resources>
+    <string name="cache_tile_label">Dọn cache</string>
+    <string name="cache_cleaning">Đang dọn cache…</string>
+    <string name="cache_ready">Chạm để dọn</string>
+    <string name="cache_unsupported">Cần Android 8 trở lên</string>
+    <string name="cache_needs_shizuku">Cần khởi động Shizuku</string>
+    <string name="cache_needs_permission">Cần cấp quyền Shizuku</string>
+    <string name="cache_setup_hint">Mở phần Dọn cache để kiểm tra Shizuku và cấp quyền.</string>
+    <string name="cache_unknown_result">Chưa xác nhận được kết quả dọn cache. Không chạy lại ngay vì hệ thống có thể vẫn đang xử lý.</string>
+    <string name="cache_failed">Android từ chối yêu cầu dọn cache: %1$s</string>
+    <string name="cache_finished">Android đã xử lý yêu cầu dọn cache. Dung lượng trống tăng khoảng %1$s MB.\n\nHệ thống không xác nhận mọi cache đã được xóa. Dung lượng có thể thay đổi do app khác đang chạy.</string>
+    <string name="cache_close">Đóng</string>
+</resources>

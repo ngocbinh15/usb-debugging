@@ -1,3 +1,4 @@
 <resources>
     <bool name="private_dns_supported">false</bool>
+    <bool name="cache_cleaner_supported">false</bool>
 </resources>

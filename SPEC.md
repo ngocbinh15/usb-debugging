@@ -31,6 +31,11 @@ Không tài khoản, quảng cáo hay dịch vụ chạy thường trực của 
 - Chênh lệch dung lượng trống được ghi là ước tính; app khác có thể tác động số đo. Khi timeout, báo chưa xác nhận được kết quả; thao tác đã gửi tới hệ thống có thể vẫn tiếp tục.
 - Dọn trên luồng nền, giới hạn subprocess 60 giây và yêu cầu Shizuku 90 giây, giới hạn log trả về 4096 ký tự, đóng kết nối và dịch vụ sau khi xong.
 - Điện thoại không root cần khởi động lại Shizuku sau khi reboot. Không thay đổi USB/DNS khi dọn cache.
+- Ô **Dọn cache** có từ Android 8. Android 13+ hỗ trợ yêu cầu thêm ô; các bản cũ hướng dẫn thêm thủ công. Thêm ô không tự cấp quyền hay chạy dọn.
+- Chạm ô khi Shizuku sẵn sàng sẽ mở hộp tiến trình/kết quả Kotlin và dọn ngay. Thiếu quyền/dịch vụ thì mở app để thiết lập; không tự dọn sau khi cấp quyền. Yêu cầu mở khóa trước khi dọn.
+- App và ô dùng chung CacheTrimClient, chỉ cho một yêu cầu dọn đang chạy. Hộp tiến trình bị tạo lại sẽ báo chưa xác nhận kết quả thay vì gửi thêm lệnh dọn; đóng màn hình sẽ giải phóng kết nối và worker.
+- Có ô **Dọn cache** trong Cài đặt nhanh: chạm khi đã mở khóa và Shizuku có quyền sẽ mở hộp tiến trình Android và chạy một lần. Máy khóa phải mở khóa trước; thiếu Shizuku/quyền thì mở app để thiết lập, không tự dọn sau khi cấp quyền.
+- Ô và nút Flutter dùng chung `CacheTrimClient`, chặn yêu cầu dọn đồng thời. Không tự dọn khi thêm ô, mở bảng nhanh hoặc khôi phục hộp tiến trình sau khi Activity bị tạo lại. Báo kết quả thực tế và trạng thái chưa xác nhận khi màn hình/dịch vụ đóng giữa chừng.
 
 ## Thứ tự và kiểm tra
 

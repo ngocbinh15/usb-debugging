@@ -106,6 +106,32 @@ class _CacheCleanerCardState extends State<CacheCleanerCard>
     }
   }
 
+  Future<void> _addTile() async {
+    setState(() => _busy = true);
+    try {
+      final result = await _channel.invokeMethod<String>('addCacheTile');
+      if (!mounted) return;
+      setState(() {
+        _result = switch (result) {
+          'added' => 'Đã thêm ô Dọn cache vào Cài đặt nhanh.',
+          'alreadyAdded' => 'Ô Dọn cache đã có trong Cài đặt nhanh.',
+          'notAdded' => 'Chưa thêm ô. Bạn có thể thêm thủ công bằng nút Sửa.',
+          _ =>
+            'Kéo bảng Cài đặt nhanh xuống → Sửa (biểu tượng bút chì) '
+                '→ kéo ô Dọn cache lên.',
+        };
+      });
+    } on PlatformException catch (error) {
+      if (mounted) {
+        setState(
+          () => _result = error.message ?? 'Không thêm được ô dọn cache.',
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) => Card(
     child: Padding(
@@ -136,6 +162,11 @@ class _CacheCleanerCardState extends State<CacheCleanerCard>
                 ? null
                 : () => _perform('clean'),
             child: const Text('Dọn cache hàng loạt'),
+          ),
+          OutlinedButton.icon(
+            onPressed: _busy || !_supported ? null : _addTile,
+            icon: const Icon(Icons.add),
+            label: const Text('Thêm ô Dọn cache'),
           ),
           if (_running && !_granted && _supported)
             OutlinedButton(
